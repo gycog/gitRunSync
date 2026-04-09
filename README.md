@@ -1,153 +1,217 @@
 # GitRunSync
 
-## 项目简介
+GitRunSync 是一个跨平台的 C 语言小工具，用来把“运行某个程序”和“同步当前 Git 仓库”串起来：
 
-GitRunSync 是一个通用工具：**先启动指定的程序并等待其退出**，随后自动执行 Git 操作（add/commit/pull/push）。
-此外支持 **优先启动微软应用商店（Appx）已安装应用**（通过关键字或 AUMID），并在可行时等待其退出。
+1. 在当前目录向上查找 Git 仓库根目录
+2. 先执行一次 `git pull`
+3. 启动指定应用并等待其退出
+4. 自动执行 `git add -A`
+5. 生成时间戳提交信息并执行 `git commit`
+6. 再执行 `git pull`
+7. 执行 `git push -u`
 
-## 功能特点
+适合这种场景：打开某个编辑器、绘图工具、游戏工具链或商店应用，退出后自动把仓库改动提交并推送。
 
-- **自动 Git 操作**：程序退出后自动执行 add/commit/pull/push
-- **单实例运行**：确保同一时间只有一个实例运行
-- **灵活的配置方式**：支持命令行参数和配置文件
-- **智能仓库检测**：自动从当前目录向上查找 Git 仓库根目录
-- **商店应用优先启动**：可用关键字或 AUMID 启动商店应用（失败则回退到普通 exe）
-- **自动查找程序**：在未配置 RunExePath 时，会尝试使用系统自带程序作为兜底（如 `ping.exe`）
+## 功能
 
-## 工作流程
+- 跨平台支持 Windows 和 Linux
+- 单实例运行，避免同一程序被重复触发
+- 支持配置文件和命令行参数
+- 支持优先启动应用商店应用，失败后回退到普通可执行文件
+- 支持静默运行，并把输出写入日志文件
+- 支持 Webhook 通知
+- 支持创建桌面快捷方式
 
-1. **单实例检查**：确保只有一个程序实例运行
-2. **参数解析**：解析命令行参数和配置文件
-3. **Git Pull**：先拉取最新代码
-4. **Git Status 检查**：检查仓库状态
-5. **启动外部程序**：启动指定的外部程序并等待其退出
-6. **Git 提交推送**：自动执行 add/commit/pull/push
+## 实际行为
 
-## 安装方法
+- Git 仓库是从“当前工作目录”向上自动查找 `.git`
+- 启动目标优先级是 `run_store_app` > `run_exe_path` > 默认 `ping`
+- `git commit` 的提交信息格式为 `YYYYMMDD_HHMMSS`
+- 即使被启动程序退出码非 0，程序仍会继续尝试 `commit/pull/push`
+- `show_window = false` 时默认静默运行，日志写到程序目录下的 `GitRunSync.log`
 
-1. 克隆或下载项目源码
-2. 使用 CMake 构建整个项目
-3. 将编译生成的可执行文件放在合适的目录并按需重命名
+## 项目结构
 
-## 使用方法
-
-### 基本用法
-
-```bash
-GitRunSync.exe [RunExePath] [RunExeArg] [--run <exe>] [--arg <arg>]
+```text
+.
+├── CMakeLists.txt
+├── GitRunSync.toml.example
+├── src/
+│   ├── GitRunSync.c
+│   ├── platform_win32.c
+│   ├── platform_linux.c
+│   └── toml_config.c
+├── res/
+└── cmake/
 ```
 
-### 示例
+## 构建
 
-1. 基本使用（按配置文件启动；默认会优先尝试商店应用关键字 `calc`，失败则回退到 `ping.exe`）：
-   ```bash
-   GitRunSync.exe
-   ```
+依赖：
 
-2. 指定要运行的程序：
-   ```bash
-   GitRunSync.exe "D:\path\to\myprogram.exe" "--param1 value1"
-   ```
+- CMake 3.20+
+- C11 编译器
+- Windows: `shell32`、`shlwapi`、`winhttp`
+- Linux: OpenSSL `crypto`
 
-## 命令行参数
+通用构建：
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+```
+
+输出文件：
+
+- Windows: `build/bin/GitRunSync-Windows.exe`
+- Linux: `build/bin/GitRunSync-Linux`
+
+Windows MinGW：
+
+```bash
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+```
+
+Windows MSVC：
+
+```bash
+cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+```
+
+## 用法
+
+```bash
+GitRunSync [RunExePath] [RunExeArg]
+GitRunSync --run <exe> --arg <arg>
+GitRunSync -s
+GitRunSync --create-shortcut
+```
+
+命令行参数：
 
 | 参数 | 说明 |
 |------|------|
-| `RunExePath` | 要启动的程序路径（位置参数） |
-| `RunExeArg` | 传递给启动程序的参数（位置参数） |
-| `--run <exe>` | 指定要启动的程序路径（选项参数） |
-| `--arg <arg>` | 指定传递给启动程序的参数（选项参数） |
-| `--help` 或 `-h` | 显示帮助信息 |
+| `RunExePath` | 位置参数，启动程序路径 |
+| `RunExeArg` | 位置参数，启动参数 |
+| `--run <exe>` | 指定启动程序路径 |
+| `--arg <arg>` | 指定启动参数 |
+| `-s`, `--create-shortcut` | 创建桌面快捷方式 |
+| `-h`, `--help` | 显示帮助 |
+
+示例：
+
+```bash
+# 使用配置文件中的默认行为
+GitRunSync
+
+# 指定要启动的程序
+GitRunSync --run /usr/bin/code --arg "."
+
+# Windows 示例
+GitRunSync --run "C:\\Program Files\\SomeApp\\app.exe" --arg "--project demo"
+
+# 创建快捷方式
+GitRunSync -s
+```
 
 ## 配置文件
 
-程序会在 **可执行文件所在目录** 生成配置文件，**文件名与 exe 同名**（例如 `GitRunSync.exe` 对应 `GitRunSync.toml`），格式如下：
+程序会在可执行文件同目录下生成一个与程序同名的 TOML 文件：
+
+- Windows 示例：`GitRunSync-Windows.toml`
+- Linux 示例：`GitRunSync-Linux.toml`
+
+配置示例：
 
 ```toml
 [gitsync]
 repo_dir = ""
 run_store_app = "calc"
-run_exe_path = "C:\\Windows\\System32\\ping.exe"
-run_exe_arg = ""
+run_exe_path = "/usr/bin/ping"
+run_exe_arg = "-c 10 127.0.0.1"
+auto_clean_on_conflict = false
+
+[webhook]
+url = ""
+secret = ""
+
+[ui]
+console_minimize = "tray"
+show_window = false
 ```
 
-### 配置项说明
+配置项说明：
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `gitsync.repo_dir` | Git 仓库目录（留空则自动查找） | 空 |
-| `gitsync.run_store_app` | 商店应用关键字或 AUMID（`PackageFamilyName!AppId`）；**非空时优先启动**，失败回退 `gitsync.run_exe_path` | `calc` |
-| `gitsync.run_exe_path` | 要启动的普通 exe 路径（`gitsync.run_store_app` 为空或失败时使用） | `C:\Windows\System32\ping.exe` |
-| `gitsync.run_exe_arg` | 传递给启动程序的参数 | 空 |
+| 节 | 键 | 说明 |
+|----|----|------|
+| `gitsync` | `repo_dir` | 配置文件中会生成该字段，但当前主流程仍然按当前工作目录自动查找 Git 仓库 |
+| `gitsync` | `run_store_app` | 优先启动的应用标识。Windows 下可用关键字或 AUMID，Linux 下会尝试匹配应用 |
+| `gitsync` | `run_exe_path` | 普通可执行文件路径，作为回退目标 |
+| `gitsync` | `run_exe_arg` | 启动参数 |
+| `gitsync` | `auto_clean_on_conflict` | `git pull` 异常时是否自动执行清理流程 |
+| `webhook` | `url` | 同步完成后发送通知的 URL |
+| `webhook` | `secret` | Webhook HMAC 签名密钥 |
+| `ui` | `console_minimize` | 显示窗口时的最小化策略：`tray`、`taskbar`、`none` |
+| `ui` | `show_window` | 是否显示窗口，默认 `false` |
 
-## 自动查找程序逻辑
+## 平台说明
 
-启动逻辑优先级如下：
+### Windows
 
-1. `RunStoreApp` 非空：优先尝试启动商店应用（关键字或 AUMID）
-2. 商店应用启动失败或 RunStoreApp 为空：使用 `RunExePath`
-3. 若 `RunExePath` 为空：兜底查找 `ping.exe`（优先 repo 目录，其次 exe 目录，最后系统目录）
+- 支持优先启动 Microsoft Store 应用
+- 支持托盘最小化
+- Webhook 通过 WinHTTP 发送
+- 可执行文件默认名为 `GitRunSync-Windows.exe`
 
-## 注意事项
+### Linux
 
-1. 程序会自动最小化控制台窗口，外部程序退出后恢复
-2. 支持 UTF-8 编码输出
-3. 仅支持 Windows 操作系统
-4. 确保 Git 已正确安装并配置环境变量
-5. 首次运行会自动生成配置文件
+- 支持通过应用名匹配 `.desktop` 应用并等待退出
+- 托盘和最小化接口当前为占位实现
+- 静默模式下会重定向标准输出和标准错误到 `/dev/null`
+- 可执行文件默认名为 `GitRunSync-Linux`
 
-## 退出码说明
+## 快捷方式
+
+`-s` 或 `--create-shortcut` 会根据当前所在 Git 仓库名称创建快捷方式：
+
+- Windows: 创建桌面快捷方式
+- Linux: 创建 `.desktop` 启动项
+
+程序会优先查找图标：
+
+1. `icons/<仓库名>.png|svg|xpm|ico`
+2. `res/<仓库名>.png|svg|xpm|ico`
+
+## 日志与静默模式
+
+- 日志文件固定写到程序目录下的 `GitRunSync.log`
+- `show_window = false` 时，控制台输出会被关闭，只保留日志
+- `show_window = true` 时，会输出执行过程，并在成功后倒计时退出
+
+## 退出码
 
 | 退出码 | 说明 |
 |--------|------|
-| 0 | 成功执行 |
-| 1 | 初始化失败 |
-| 2 | 参数解析失败 |
-| 3 | 配置文件处理失败 |
-| 4 | 未找到 Git 仓库 |
-| 5 | 未找到要启动的程序 |
-| 6 | Git 同步前操作失败 |
+| `0` | 成功 |
+| `10` | 已有实例在运行 |
+| `11` | 参数错误 |
+| `12` | 配置文件错误 |
+| `13` | 未找到 Git 仓库 |
+| `14` | 未找到可运行目标 |
+| `50` | Git 预同步失败 |
+| `60` | 快捷方式创建失败 |
 
-## 开发说明
+完整错误码定义见 `src/error_codes.h`。
 
-### 编译依赖
+## 当前限制
 
-- Windows SDK
-- C 编译器（如 MSVC、MinGW 等）
-- CMake 3.20 或更高版本
-- Windows 下需要链接 `shlwapi`、`shell32`、`winhttp`
-- Linux 下需要 OpenSSL `crypto`
-
-### 使用 CMake 构建（推荐）
-
-```powershell
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
-
-默认输出目录：
-
-- Windows: `build/bin/GitRunSync-Windows.exe`
-- Linux: `build/bin/GitRunSync-Linux`
-
-### Windows 下使用 MinGW
-
-```powershell
-cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
-
-### Windows 下使用 MSVC
-
-```powershell
-cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
+- Git 操作流程是固定的，当前不支持只执行部分步骤
+- `repo_dir` 字段已存在，但当前版本主流程没有真正使用它切换仓库
+- `auto_clean_on_conflict = true` 时会执行较激进的 Git 清理命令，使用前应明确风险
+- README 中未覆盖所有平台实现细节，具体行为以源码为准
 
 ## 许可证
 
-本项目采用 MIT 许可证。
-
-## 作者
-
-gycog
+MIT
