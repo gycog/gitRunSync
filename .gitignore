@@ -1,0 +1,103 @@
+# Build directory
+build/
+
+# Executable files
+GitRunSync
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Object files
+*.obj
+*.o
+*.ko
+*.elf
+
+# Dependency files
+*.d
+*.d.*
+
+# Compiler output
+*.ilk
+*.pdb
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.dwo
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cache directories
+.cache/
+.ccls-cache/
+.clangd/
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Configuration files
+GitRunSync.toml
+*.local.toml
+*.secret.toml
+.env
+.env.*
+.claude/*
+.codex
+.codex/
+
+# Platform-specific binaries
+GitRunSync-Linux
+GitRunSync-Windows.exe

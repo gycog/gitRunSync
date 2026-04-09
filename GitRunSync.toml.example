@@ -1,0 +1,47 @@
+# GitRunSync Configuration
+# TOML format - Modern configuration standard
+
+[application]
+name = "GitRunSync"
+version = "1.0.0"
+
+[gitsync]
+# Git 仓库目录（留空则自动查找）
+repo_dir = ""
+
+# 商店应用关键字或 AUMID
+# 非空时优先启动，失败则回退到 RunExePath
+run_store_app = "calc"
+
+# 普通 exe 路径（商店应用失败时使用）
+run_exe_path = "C:\\Windows\\System32\\ping.exe"
+
+# 传递给启动程序的参数
+run_exe_arg = ""
+
+# 冲突时自动清理：0=否，1=是
+auto_clean_on_conflict = 0
+
+[webhook]
+# 推送通知 URL
+url = ""
+
+# 签名密钥
+secret = ""
+
+[ui]
+# 最小化模式：tray/taskbar/none
+console_minimize = "tray"
+
+# 是否显示窗口：0=静默，1=显示
+show_window = 0
+
+[advanced]
+# 单实例超时（秒）
+single_instance_timeout = 30
+
+# 日志级别：debug/info/warn/error
+log_level = "info"
+
+# 编码：utf8/gbk
+encoding = "utf8"
